@@ -3,7 +3,7 @@ name = "SigmaOS-alacritty"
 tier = 2
 stability = "scaffold"
 language = "rust"
-description = "alacritty component"
+description = "GitHub description is a placeholder; component scope remains unclassified."
 upstream = []
 
 [contract]
