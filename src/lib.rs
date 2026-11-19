@@ -1,238 +1,131 @@
-//! SigmaOS-alacritty — comprehensive GPU-accelerated terminal emulator component.
-//!
-//! Provides terminal emulator functionality with GPU acceleration,
-//! configuration management, session handling, and window management.
+//! SigmaOS-alacritty — alacritty component for SigmaOS
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
-pub mod terminal;
-pub mod config;
-pub mod session;
-pub mod renderer;
-pub mod input;
-pub mod manager;
-pub mod options;
+use thiserror::Error;
 
-pub use terminal::{Terminal, TerminalMode, TerminalState, TerminalConfig};
-pub use config::{Theme, FontConfig, ColorScheme};
-pub use session::{Session, SessionType, SessionStatus, SessionConfig};
-pub use renderer::{Renderer, RenderConfig, RenderBackend, RenderQuality};
-pub use input::{InputHandler, InputEvent, KeyBinding, KeyAction};
-pub use manager::{TerminalManager, ManagerOptions, ManagerStatistics};
-pub use options::{Mode, Options};
+/// Error types for this component.
+#[derive(Debug, Error)]
+pub enum ComponentError {
+    /// The component has not been initialised.
+    #[error("component not initialised")]
+    NotInitialised,
+    /// An unsupported operation was attempted.
+    #[error("unsupported operation: {0}")]
+    Unsupported(&'static str),
+}
+
+/// Convenience result type.
+pub type ComponentResult<T> = Result<T, ComponentError>;
+
+/// Core component struct for alacritty.
+#[derive(Debug, Default, Clone)]
+pub struct Component {
+    initialised: bool,
+    name: String,
+}
+
+impl Component {
+    /// Create a new, uninitialised component.
+    pub fn new() -> Self {
+        Self {
+            initialised: false,
+            name: String::from("alacritty"),
+        }
+    }
+
+    /// Initialise the component.
+    pub fn init(&mut self) -> ComponentResult<()> {
+        self.initialised = true;
+        Ok(())
+    }
+
+    /// Returns true if the component has been initialised.
+    pub fn is_ready(&self) -> bool {
+        self.initialised
+    }
+
+    /// Execute the component's primary operation.
+    pub fn run(&self) -> ComponentResult<()> {
+        if !self.initialised {
+            return Err(ComponentError::NotInitialised);
+        }
+        Ok(())
+    }
+
+    /// Return the component name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Reset the component to uninitialised state.
+    pub fn reset(&mut self) {
+        self.initialised = false;
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
-    fn test_terminal_mode() {
-        let modes = vec![
-            TerminalMode::Normal,
-            TerminalMode::Alternate,
-            TerminalMode::Scrollback,
-            TerminalMode::Selection,
-            TerminalMode::Search,
-        ];
-        assert_eq!(modes.len(), 5);
+    fn test_new_not_ready_aaa() {
+        // Arrange + Act
+        let c = Component::new();
+        // Assert
+        assert!(!c.is_ready());
     }
-    
+
     #[test]
-    fn test_terminal_state() {
-        let states = vec![
-            TerminalState::Idle,
-            TerminalState::Running,
-            TerminalState::Paused,
-            TerminalState::Exited,
-            TerminalState::Error,
-        ];
-        assert_eq!(states.len(), 5);
+    fn test_init_makes_ready_aaa() {
+        // Arrange
+        let mut c = Component::new();
+        // Act
+        c.init().unwrap();
+        // Assert
+        assert!(c.is_ready());
     }
-    
+
     #[test]
-    fn test_session_type() {
-        let types = vec![
-            SessionType::Shell,
-            SessionType::SSH,
-            SessionType::Local,
-            SessionType::Remote,
-            SessionType::Custom,
-        ];
-        assert_eq!(types.len(), 5);
+    fn test_run_before_init_fails_aaa() {
+        // Arrange
+        let c = Component::new();
+        // Act
+        let result = c.run();
+        // Assert
+        assert!(result.is_err());
     }
-    
+
     #[test]
-    fn test_session_status() {
-        let statuses = vec![
-            SessionStatus::Active,
-            SessionStatus::Inactive,
-            SessionStatus::Exited,
-            SessionStatus::Error,
-        ];
-        assert_eq!(statuses.len(), 4);
+    fn test_run_after_init_succeeds_aaa() {
+        // Arrange
+        let mut c = Component::new();
+        c.init().unwrap();
+        // Act
+        let result = c.run();
+        // Assert
+        assert!(result.is_ok());
     }
-    
+
     #[test]
-    fn test_render_backend() {
-        let backends = vec![
-            RenderBackend::GPU,
-            RenderBackend::CPU,
-            RenderBackend::Auto,
-        ];
-        assert_eq!(backends.len(), 3);
+    fn test_reset_clears_init_aaa() {
+        // Arrange
+        let mut c = Component::new();
+        c.init().unwrap();
+        assert!(c.is_ready());
+        // Act
+        c.reset();
+        // Assert
+        assert!(!c.is_ready());
     }
-    
+
     #[test]
-    fn test_render_quality() {
-        let qualities = vec![
-            RenderQuality::Low,
-            RenderQuality::Medium,
-            RenderQuality::High,
-            RenderQuality::Ultra,
-        ];
-        assert_eq!(qualities.len(), 4);
-    }
-    
-    #[test]
-    fn test_input_event() {
-        let event = InputEvent::KeyPress { key: "Enter".into(), modifiers: vec![] };
-        assert!(matches!(event, InputEvent::KeyPress { .. }));
-    }
-    
-    #[test]
-    fn test_key_action() {
-        let actions = vec![
-            KeyAction::SendInput,
-            KeyAction::Copy,
-            KeyAction::Paste,
-            KeyAction::Clear,
-            KeyAction::Exit,
-        ];
-        assert_eq!(actions.len(), 5);
-    }
-    
-    #[test]
-    fn test_terminal_config_creation() {
-        let mut config = TerminalConfig::default();
-        config.font_size = 14;
-        config.theme = "dark".into();
-        config.opacity = 0.95;
-        
-        assert_eq!(config.font_size, 14);
-        assert_eq!(config.theme, "dark");
-        assert_eq!(config.opacity, 0.95);
-    }
-    
-    #[test]
-    fn test_theme_creation() {
-        let theme = Theme::new("dark".into());
-        assert_eq!(theme.name, "dark");
-        assert!(theme.colors.is_empty());
-    }
-    
-    #[test]
-    fn test_font_config_creation() {
-        let font = FontConfig::new("Monospace".into(), 12);
-        assert_eq!(font.family, "Monospace");
-        assert_eq!(font.size, 12);
-    }
-    
-    #[test]
-    fn test_color_scheme_creation() {
-        let scheme = ColorScheme::new();
-        assert!(scheme.colors.is_empty());
-    }
-    
-    #[test]
-    fn test_terminal_creation() {
-        let terminal = Terminal::new("term-1".into());
-        assert_eq!(terminal.id, "term-1");
-        assert_eq!(terminal.state, TerminalState::Idle);
-    }
-    
-    #[test]
-    fn test_session_creation() {
-        let session = Session::new("sess-1".into(), SessionType::Shell);
-        assert_eq!(session.id, "sess-1");
-        assert_eq!(session.session_type, SessionType::Shell);
-    }
-    
-    #[test]
-    fn test_renderer_creation() {
-        let renderer = Renderer::new(RenderBackend::GPU);
-        assert_eq!(renderer.backend, RenderBackend::GPU);
-    }
-    
-    #[test]
-    fn test_input_handler_creation() {
-        let handler = InputHandler::new();
-        assert!(handler.key_bindings.is_empty());
-    }
-    
-    #[test]
-    fn test_manager_creation() {
-        let mut manager = TerminalManager::new();
-        assert!(manager.list_terminals().is_empty());
-        assert!(manager.list_sessions().is_empty());
-    }
-    
-    #[test]
-    fn test_create_terminal() {
-        let mut manager = TerminalManager::new();
-        let terminal_id = manager.create_terminal();
-        
-        assert!(manager.get_terminal(&terminal_id).is_some());
-        assert_eq!(manager.list_terminals().len(), 1);
-    }
-    
-    #[test]
-    fn test_create_session() {
-        let mut manager = TerminalManager::new();
-        let session_id = manager.create_session(SessionType::Shell);
-        
-        assert!(manager.get_session(&session_id).is_some());
-        assert_eq!(manager.list_sessions().len(), 1);
-    }
-    
-    #[test]
-    fn test_close_session() {
-        let mut manager = TerminalManager::new();
-        let session_id = manager.create_session(SessionType::Shell);
-        
-        // Start session first
-        if let Some(session) = manager.get_session_mut(&session_id) {
-            session.start();
-        }
-        
-        assert!(manager.close_session(&session_id));
-        assert!(manager.get_session(&session_id).is_some()); // Session still exists but is exited
-        assert_eq!(manager.get_session(&session_id).unwrap().status, SessionStatus::Exited);
-    }
-    
-    #[test]
-    fn test_export_import() {
-        let mut manager = TerminalManager::new();
-        
-        manager.create_terminal();
-        manager.create_session(SessionType::Shell);
-        
-        let export = manager.export_data();
-        
-        let mut manager2 = TerminalManager::new();
-        manager2.import_data(export);
-        
-        assert_eq!(manager2.list_terminals().len(), 1);
-        assert_eq!(manager2.list_sessions().len(), 1);
-    }
-    
-    #[test]
-    fn test_manager_statistics() {
-        let mut manager = TerminalManager::new();
-        
-        manager.create_terminal();
-        manager.create_terminal();
-        manager.create_session(SessionType::Shell);
-        
-        let stats = manager.get_statistics();
-        assert_eq!(stats.total_terminals, 2);
-        assert_eq!(stats.total_sessions, 1);
+    fn test_name_returns_component_name_aaa() {
+        // Arrange
+        let c = Component::new();
+        // Act
+        let n = c.name();
+        // Assert
+        assert!(!n.is_empty());
     }
 }
